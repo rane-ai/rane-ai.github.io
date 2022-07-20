@@ -210,7 +210,7 @@ $$
 Log(R) = [ \frac{\theta(R - R^T)}{2 sin(\theta)} ]^v
 $$
 
-where $$\theta$$ is given by
+where $$\theta$$ is given by:
 
 $$
 \theta = cos^{-1} \frac{ (\mathrm{Tr}(R)-1) }{2}
