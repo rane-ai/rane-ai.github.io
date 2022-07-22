@@ -133,14 +133,14 @@ R =
 \end{bmatrix}
 $$
 
-Quaternions have serveral advantages over rotation matrices. They are a minimal representation as a result of the unit magnitude constraint - the 4th component can always be recovered from the other three. Importantly, quaternions don't suffer from gimbal lock - this makes them a popular choice in computer graphics. Interpolation is possible through the Spherical Interpolation (SLERP) algoritm. In fact, one way to interpolate rotation matrices is to convert to a quaternion, carry out SLERP and convert back! Additionally, it is easier to see how optimsation w.r.t. a quaternion would work - this is covered in the ICP demo. However, depending upon the implementation, the aforementioned problems of drift also apply to quaternions and needs to be handled. 
+Quaternions have several advantages over rotation matrices. They are a minimal representation as a result of the unit magnitude constraint - the 4th component can always be recovered from the other three. Importantly, quaternions don't suffer from gimbal lock - this makes them a popular choice in computer graphics. Interpolation is possible through the Spherical Interpolation (SLERP) algorithm. In fact, one way to interpolate rotation matrices is to convert to a quaternion, carry out SLERP and convert back! Additionally, it is easier to see how optimsation w.r.t. a quaternion would work - this is covered in the ICP demo. However, depending upon the implementation, the aforementioned problems of drift also apply to quaternions and needs to be handled. 
 
 So I have covered two very different looking approaches and it may seem strange that they both describe rotations. It turns out that rotation matrices and quaternions are both parameterisations of the Special Orthogonal Group SO(3) - methods making use of SO(3) are now common in the literature, hence the following section. This is of interest for optimisation w.r.t a rotation matrix as understanding SO(3) reveals the form of an incremental rotation.
 
 
 # **S**pecial **O**rthogonal Group of dimension **3**: SO(3)
 
-So why does adding an increment to a rotation matrix not work in general? This stems from the fact that rotation matrices do not belong to a vector space, rather they belong to a *Group*, in particular SO(3). Adding an increment could result in *jumping out* of the space of rotation matrices. This is of interest in the context of optimisation (w.r.t a rotation matrix) where normally increments are added to some intial value to drive down the loss. 
+So why does adding an increment to a rotation matrix not work in general? This stems from the fact that rotation matrices do not belong to a vector space, rather they belong to a *Group*, in particular SO(3). Adding an increment could result in *jumping out* of the space of rotation matrices. This is of interest in the context of optimisation (w.r.t a rotation matrix) where normally increments are added to some initial value to drive down the loss. 
 
 There are several papers on this topic but few are as accessible as the excellent Sola et al [1] to which I refer the reader for an in-depth analysis. With pragmatism in mind, I will simply summarise the main results from [1] in order to have sufficient working knowledge to apply the described methods.
  
@@ -149,12 +149,10 @@ There are several papers on this topic but few are as accessible as the excellen
   <em>Manifold, M, Inspired by [1]</em>
 </p>
 
-At a high level, rotation matrices are said to exist on an abstract mathematical object known as a *manifold*. This can be thought of as a smooth, everywhere differentiable, surface. This manifold is not a vector space. However, *locally*, over a small area, the tangent (hyper) plane, $$T_xM$$, resembles a vector space of angular velocities - see sketch. An commonly used example to visualise this, is to consider the earth which, *globally*, is a sphere but *locally* is well approximated as being planar. Quaternions are another parameterisation of SO(3) and have their own tangent plane representation. However since optimising w.r.t. a quaternion is clearer - the remainder of this post will focus on rotation matrices where this theory is more important. When researching this topic I found the tutorial [7] quite helpful.
-
-It turns out that the $$\operatorname{exp}$$ and $$\operatorname{log}$$ operators have a central role in mapping from the tangent space to the manifold and vice versa respectively. At first glance these functions may seem unexpected. However, [1] develop the theory underlying SO(3) from a familiar starting place in (unit magnitude) complex numbers, which describe a unit circle. As is well known, in exponential form, complex multiplication can be viewed as 2D rotation in the complex plane - this is where $$\operatorname{exp}$$ comes into play. The extension then to 3D via (unit) Quaternions becomes easier to follow. 
+At a high level, rotation matrices are said to exist on an abstract mathematical object known as a *manifold*. This can be thought of as a smooth, everywhere differentiable, surface. This manifold is not a vector space. However, *locally*, over a small area, the tangent (hyper) plane, $$T_xM$$, resembles a vector space of angular velocities - see sketch. A commonly used example to visualise this, is to consider the earth which, *globally*, is a sphere but *locally* is well approximated as being planar. Quaternions are another parameterisation of SO(3) and have their own tangent plane representation. However since optimising w.r.t. a quaternion is clearer as mentioned previously - the remainder of this post will focus on rotation matrices where this theory is more important. Note, when researching this topic I found the tutorial [7] quite helpful.
 
 <!--- Tanget plane --->
-The following theory assumes that the tangent plane is evaluated at the identity rotation on the manifold and only *small*, incremental, rotations are of interest. Elements of the tanget space known as the, Lie Algebra, have the form of skew-symmetric matrices:  
+The following theory assumes that the tangent plane is evaluated at the identity rotation on the manifold and only *small*, incremental, rotations are of interest. Elements of the tangent space known as the, Lie Algebra, have the form of skew-symmetric matrices:  
 
 $$
 [\boldsymbol{\omega}]_x = 
@@ -165,7 +163,7 @@ $$
 \end{bmatrix}
 $$  
 
-where $${\omega}_i$$ is the derivative of angle, i.e. angular velocity. Drummond [2] arrives at this result through considering how the form of a small perturbation of the identity rotation, $$I$$ would appear. Additionaly, [2] notes that the tangent plane looks the same at any point on the manifold. If we want to evaluate the tangent plane at another point we can do so by starting off with $$I + \Delta $$ where $$\Delta$$ is a member of the tangent space followed by left multiplying by the evaluation point on the manifold, $$R$$, resulting in $$R+R\Delta$$.
+where $${\omega}_i$$ is the derivative of angle, i.e. angular velocity. Drummond [2] arrives at this result through considering what form a small perturbation of the identity rotation, $$I$$, would look like. Additionally, [2] notes that the tangent plane looks the same at any point on the manifold. If we want to evaluate the tangent plane at another point we can do so by starting off with $$I + \Delta $$ where $$\Delta$$ is a member of the tangent space followed by left multiplying by the evaluation point on the manifold, $$R$$, resulting in $$R+R\Delta$$.
 
 As you can see, there are only 3 unique values, so this can be effectively flattened into a 3-vector as $$\boldsymbol{\omega}$$. The "flattening" operator is referred to as *vee*, [ $$]^v$$, while its inverse as *hat*, [ ]^. Interestingly, elements, $$[\boldsymbol{\omega}]_x$$, can be further broken down as a linear combination of so-called *generators* i.e. fundamental building blocks.  
 
@@ -216,26 +214,27 @@ $$
 \theta = cos^{-1} \frac{ (\mathrm{Tr}(R)-1) }{2}
 $$
 
-This means that incremental rotations can be represented by an angular velocity $$  \boldsymbol{\omega} =[ \omega_x,  \omega_y,  \omega_z] $$ - this is minimal.  The important point here is that elements of the tanget plane live in a vector space and so we can add angular velocities and map back to the manifold to obtain a valid rotation matrix. *This* is the mechanism by which we can optimise w.r.t. a rotation matrix.
+This means that incremental rotations can be represented by an angular velocity $$  \boldsymbol{\omega} =[ \omega_x,  \omega_y,  \omega_z] $$ - this is minimal.  The important point here is that elements of the tangent plane live in a vector space and so we can add angular velocities and map back to the manifold to obtain a valid rotation matrix. *This* is the mechanism by which we can optimise w.r.t. a rotation matrix.
 
+At first glance the $$\operatorname{exp}$$ function (and its inverse $$\operatorname{log}$$) may seem unexpected. However, [1] develop the theory underlying SO(3) from a familiar starting place in (unit magnitude) complex numbers, which describe a unit circle. As is well known, in exponential form, complex multiplication can be viewed as 2D rotation in the complex plane - this is where $$\operatorname{exp}$$ comes into play. As also mentioned in [1], the $$\operatorname{exp}$$ naturally arises from considering the derivative of manifold elements and solving the corresponding differential equation.
 
 ## Demo
 
-In order to demo the above parameterisations a simple version of ICP was implemented in Python with the approach closely following [5]. It is definitely not optimised and has been written with a straightforward understanding in mind. As well as optimising for rotation, the translation is also adjusted (i.e. full 6 degree of freedom rigid body transformation) - the translation aspects were not covered here but can be readily understood in [1]. 
+In order to demo the above parameterisations a simple version of ICP was implemented in Python with the approach closely following [5]. It is definitely not optimised and has been written with a straightforward understanding in mind. As well as optimising for rotation, the translation is also adjusted (i.e. full 6 degree of freedom rigid body transformation) - the translation aspects were not covered here but can be readily understood in [1]. See the [rotations](https://github.com/rane-ai/rotations) repo.
 
 
 ## References
 
-[1] Sola, J., Deray, J. and Atchuthan, D., 2018. A micro Lie theory for state estimation in robotics. arXiv preprint arXiv:1812.01537 
+[1] Sola, J., Deray, J. and Atchuthan, D., 2018. A micro Lie theory for state estimation in robotics. [https://arxiv.org/pdf/1812.01537.pdf](https://arxiv.org/pdf/1812.01537.pdf)
 
-[2] Drummond, T., 2014. Lie groups, Lie algebras, projective geometry and optimization for 3D Geometry, Engineering and Computer Vision  
+[2] Drummond, T., 2014. Lie groups, Lie algebras, projective geometry and optimization for 3D Geometry, Engineering and Computer Vision [https://www.dropbox.com/s/5y3tvypzps59s29/3DGeometry.pdf?dl=0](https://www.dropbox.com/s/5y3tvypzps59s29/3DGeometry.pdf?dl=0)
 
-[3] Eade, E., 2013. Lie groups for 2d and 3d transformations. URL http://ethaneade.com/lie.pdf, revised Dec, 117, p.118  
+[3] Eade, E., 2013. Lie groups for 2d and 3d transformations. URL [http://ethaneade.com/lie.pdf](http://ethaneade.com/lie.pdf), revised Dec, 117, p.118  
 
-[4] Wyss-Gallifent J, MATH431: Gimbal Lock, URL (http://www.math.umd.edu/~immortal/MATH431/book/ch_gimballock.pdf)
+[4] Wyss-Gallifent J, MATH431: Gimbal Lock, URL [http://www.math.umd.edu/~immortal/MATH431/book/ch_gimballock.pdf](http://www.math.umd.edu/~immortal/MATH431/book/ch_gimballock.pdf)
 
-[5] Kuipers, J.B., 1999. Quaternions and rotation sequences: a primer with applications to orbits, aerospace, and virtual reality. Princeton university press.
+[5] Kuipers, J.B., 1999. Quaternions and rotation sequences: a primer with applications to orbits, aerospace, and virtual reality. Princeton university press. 
 
-[6] Grisetti, G., Guadagnino, T., Aloise, I., Colosi, M., Della Corte, B. and Schlegel, D., 2020. Least squares optimization: From theory to practice. Robotics, 9(3), p.51
+[6] Grisetti, G., Guadagnino, T., Aloise, I., Colosi, M., Della Corte, B. and Schlegel, D., 2020. Least squares optimization: From theory to practice. Robotics, 9(3), p.51 [https://arxiv.org/pdf/2002.11051.pdf](https://arxiv.org/pdf/2002.11051.pdf)
 
-[7] Manifolds #1 - Introducing Manifolds https://youtu.be/GqRoiZgd6N8
+[7] Manifolds #1 - [Introducing Manifolds](https://youtu.be/GqRoiZgd6N8)
